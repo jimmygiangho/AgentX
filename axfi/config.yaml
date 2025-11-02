@@ -1,0 +1,232 @@
+# AXFI Configuration
+
+# Data settings
+data:
+  provider: "polygon"  # polygon, alpaca, yfinance (fallback)
+  db_path: "./db/axfi.duckdb"
+  cache_dir: "./data"
+  universe: "sp500"  # or path to CSV
+
+# Daily scan settings
+scan:
+  run_time: "23:00"  # Daily scan at 11 PM local time
+  lookback_days: 1095  # 3 years of historical data
+
+# Default symbols to track
+symbols:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - TSLA
+
+# S&P 500 symbols (top 100 by market cap)
+sp500_symbols:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - NVDA
+  - META
+  - TSLA
+  - BRK-B
+  - V
+  - JNJ
+  - WMT
+  - MA
+  - UNH
+  - XOM
+  - PG
+  - JPM
+  - HD
+  - CVX
+  - COST
+  - ABBV
+  - AVGO
+  - PFE
+  - MRK
+  - ADBE
+  - CSCO
+  - KO
+  - PEP
+  - TMO
+  - DHR
+  - ACN
+  - WFC
+  - COIN
+  - T
+  - CMCSA
+  - VZ
+  - PM
+  - TXN
+  - INTU
+  - QCOM
+  - HON
+  - NFLX
+  - DIS
+  - INTC
+  - AMD
+  - BA
+  - GS
+  - AXP
+  - DELL
+  - UBER
+  - CRM
+  - ORCL
+  - IBM
+  - NKE
+  - LOW
+  - RTX
+  - BKNG
+  - MDT
+  - ADP
+  - C
+  - GILD
+  - GE
+  - CAT
+  - TJX
+  - SBUX
+  - AMGN
+  - ISRG
+  - VRTX
+  - REGN
+  - SNPS
+  - CDNS
+  - CRWD
+  - FANG
+  - MPC
+  - ON
+  - MCHP
+  - FTNT
+  - NXPI
+  - KLAC
+  - LRCX
+  - EXPD
+  - HSY
+  - CTVA
+  - AME
+  - EQT
+  - TECH
+  - WAT
+  - FOXA
+  - FOX
+  - ENPH
+  - MORN
+  - FAST
+  - KEYS
+  - CACI
+  - NDAQ
+  - ETN
+  - AEE
+  - MTCH
+  - TCOM
+  - IDXX
+  - ZS
+
+# Data paths
+data_dir: "./data"
+db_dir: "./db"
+reports_dir: "./reports"
+
+# Database settings
+database:
+  engine: "duckdb"  # duckdb or sqlite
+  path: "./db/axfi.db"
+  market_data_path: "./db/market_data.db"
+
+# Backtesting settings
+backtest:
+  initial_capital: 100000
+  commission: 0.001  # 0.1% commission
+  lookback_periods: 252  # ~1 year of trading days
+
+# Strategy Scanner settings
+strategy:
+  sma_short: [10, 20, 30]
+  sma_long: [50, 100, 150, 200]
+  bollinger_window: [10, 15, 20, 25]
+  bollinger_std: [1.5, 2.0, 2.5]
+  atr_window: [10, 14, 20]
+  atr_multiplier: [1.5, 2.0, 2.5]
+
+scanner:
+  enabled: true
+  optimize_parameters: true
+  optimization_method: "grid"  # "grid" or "genetic"
+  max_strategies_per_symbol: 10
+  min_trades_for_evaluation: 5
+  
+# Parameter optimization
+optimization:
+  grid_search_samples: 50
+  genetic_population_size: 30
+  genetic_generations: 10
+  
+# Research Library - indicator settings
+indicators:
+  # Trend following
+  ema_periods: [10, 20, 50, 100, 200]
+  macd_fast: [12]
+  macd_slow: [26]
+  macd_signal: [9]
+  adx_period: [14]
+  adx_threshold: [20, 25, 30]
+  
+  # Mean reversion
+  rsi_period: [14]
+  rsi_oversold: [30]
+  rsi_overbought: [70]
+  stochastic_k: [14]
+  stochastic_d: [3]
+  bollinger_period: [20]
+  bollinger_std: [2]
+  
+  # Volatility
+  atr_period: [14]
+  atr_multiplier: [1.5, 2.0, 2.5]
+  donchian_period: [20]
+  keltner_period: [20]
+  keltner_multiplier: [2.0]
+  
+  # Volume
+  obv: true
+  mfi_period: [14]
+
+# AI Engine settings
+ai:
+  model_type: "ensemble"  # or "linear", "tree"
+  feature_importance: true
+  retrain_interval_days: 30
+  scoring_weights:
+    sharpe: 0.4
+    cagr: 0.3
+    max_drawdown: 0.2
+    win_rate: 0.1
+  confidence_threshold: 0.6
+  top_n_recommendations: 10
+
+# UI settings
+ui:
+  host: "127.0.0.1"
+  port: 8081
+  title: "AXFI - Agent X Financial Intelligence"
+
+# Report settings
+report:
+  out_dir: "./reports"
+
+# Dashboard settings
+dashboard:
+  host: "127.0.0.1"
+  port: 8081
+  title: "AXFI - Agent X Financial Intelligence"
+
+# Automation & scheduling
+automation:
+  enabled: true
+  schedule_type: "daily"
+  run_time: "23:00"
+  auto_scan: true
+  auto_backtest: true
+  auto_report: true
+  auto_dashboard: true
