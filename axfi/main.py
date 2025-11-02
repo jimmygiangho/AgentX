@@ -33,8 +33,9 @@ app = FastAPI(
 # Mount static files
 app.mount("/static", StaticFiles(directory="ui/static"), name="static")
 
-# Setup templates
+# Setup templates - using new Xetho-style UI
 templates = Jinja2Templates(directory="ui/templates")
+TEMPLATE_NAME = "dashboard_xetho.html"  # New modern UI
 
 # Load configuration (will be initialized below)
 
@@ -511,7 +512,7 @@ async def dashboard(request: Request):
     equity_charts = []
     
     # Render dashboard
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse(TEMPLATE_NAME, {
         "request": request,
         "ranked_recommendations": ranked_recommendations,
         "symbol_live_prices": symbol_live_prices,
