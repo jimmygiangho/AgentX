@@ -33,9 +33,9 @@ app = FastAPI(
 # Mount static files
 app.mount("/static", StaticFiles(directory="ui/static"), name="static")
 
-# Setup templates - using new Xetho-style UI
+# Setup templates - using modern enhanced dashboard
 templates = Jinja2Templates(directory="ui/templates")
-TEMPLATE_NAME = "dashboard_xetho.html"  # New modern UI
+TEMPLATE_NAME = "dashboard_modern.html"  # Modern enhanced UI with AI chatbot, auth, theme switcher
 
 # Load configuration (will be initialized below)
 
@@ -68,6 +68,51 @@ async def health_check():
         Dictionary with status message
     """
     return {"status": "Enhanced AXFI Dashboard OK", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/test", response_model=Dict)
+async def api_test():
+    """Test endpoint to verify API is working."""
+    return {"status": "ok", "message": "API is working", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/watchlists", response_model=Dict, tags=["watchlists"])
+async def api_get_watchlists():
+    """
+    Get all watchlists.
+    
+    Returns:
+        Dictionary with all watchlists
+    """
+    try:
+        from core.watchlist_storage import load_watchlists, initialize_default_lists
+        
+        # Initialize default lists if needed
+        try:
+            initialize_default_lists()
+        except Exception as e:
+            logger.error(f"Error initializing default lists: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        data = load_watchlists()
+        return {
+            "status": "success",
+            "watchlists": data.get("watchlists", []),
+            "default_lists": data.get("default_lists", {}),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error in api_get_watchlists: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "status": "error",
+            "message": f"Failed to load watchlists: {str(e)}",
+            "watchlists": [],
+            "default_lists": {},
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 @app.get("/api/daily_scan", response_model=Dict)
@@ -175,38 +220,48 @@ async def api_symbol_analysis(symbol: str = "AAPL"):
     
     # Always fetch fresh live data for symbol analysis (not from cache)
     logger.info(f"Fetching fresh live data for {symbol}...")
+    df = None
     try:
         df = data_collector.fetch_symbol(symbol, period='1y')
+        
+        # If fetch_symbol returns empty (including after yfinance fallback), try database
         if df.empty:
-            # Try reading from database as fallback
             logger.info(f"No live data returned, trying database...")
             df = data_collector.read_from_database(symbol=symbol)
             
         if not df.empty:
             # Save fresh data to database for future use
             data_collector.save_to_database(df, symbol)
-            logger.info(f"Successfully fetched {len(df)} rows of LIVE data for {symbol}")
+            logger.info(f"Successfully fetched {len(df)} rows of data for {symbol}")
         else:
-            logger.error(f"No data available for {symbol}")
+            logger.error(f"No data available for {symbol} from any source")
             return {
                 "function": "Single-Symbol Analysis",
                 "symbol": symbol,
-                "error": f"Could not fetch data for {symbol}",
+                "error": f"Could not fetch data for {symbol} from any provider or database",
                 "timestamp": datetime.now().isoformat()
             }
     except Exception as e:
+        error_str = str(e)
         logger.error(f"Error fetching live data for {symbol}: {e}")
+        
+        # Check if it's a rate limit error - yfinance fallback should have been attempted
+        if "429" in error_str or "Too Many Requests" in error_str:
+            logger.warning(f"Rate limit error for {symbol}, yfinance fallback should have been used")
+        
         # Try database as fallback
         try:
+            logger.info(f"Attempting to use cached data from database for {symbol}...")
             df = data_collector.read_from_database(symbol=symbol)
             if df.empty:
                 raise Exception("No data in database either")
-            logger.warning(f"Using cached data from database for {symbol}")
-        except:
+            logger.warning(f"Using cached data from database for {symbol} (data may be stale)")
+        except Exception as db_error:
+            logger.error(f"Database fallback also failed for {symbol}: {db_error}")
             return {
                 "function": "Single-Symbol Analysis",
                 "symbol": symbol,
-                "error": f"Could not fetch data for {symbol}: {str(e)}",
+                "error": f"Could not fetch data for {symbol}. Primary provider failed (may be rate limited). Tried yfinance fallback and database, but both failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
@@ -371,6 +426,102 @@ async def api_symbol_analysis(symbol: str = "AAPL"):
     }
 
 
+@app.post("/api/watchlists/create", response_model=Dict)
+async def api_create_watchlist(request: Request):
+    """
+    Create a new watchlist.
+    
+    Expected JSON body: {"name": "Watchlist Name", "symbols": ["AAPL", "MSFT"]}
+    """
+    from core.watchlist_storage import create_watchlist
+    
+    try:
+        body = await request.json()
+        name = body.get("name", "").strip()
+        symbols = body.get("symbols", [])
+        
+        if not name:
+            return {"status": "error", "message": "Watchlist name is required"}
+        
+        success = create_watchlist(name, symbols)
+        if success:
+            return {"status": "success", "message": f"Watchlist '{name}' created"}
+        else:
+            return {"status": "error", "message": f"Watchlist '{name}' already exists"}
+    except Exception as e:
+        logger.error(f"Error creating watchlist: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.delete("/api/watchlists/{watchlist_name}", response_model=Dict)
+async def api_delete_watchlist(watchlist_name: str):
+    """
+    Delete a watchlist.
+    
+    Args:
+        watchlist_name: Name of watchlist to delete
+    """
+    from core.watchlist_storage import delete_watchlist
+    
+    try:
+        success = delete_watchlist(watchlist_name)
+        if success:
+            return {"status": "success", "message": f"Watchlist '{watchlist_name}' deleted"}
+        else:
+            return {"status": "error", "message": f"Cannot delete watchlist '{watchlist_name}'"}
+    except Exception as e:
+        logger.error(f"Error deleting watchlist: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/watchlists/{watchlist_name}/add", response_model=Dict)
+async def api_add_symbol(request: Request, watchlist_name: str):
+    """
+    Add a symbol to a watchlist.
+    
+    Expected JSON body: {"symbol": "AAPL"}
+    """
+    from core.watchlist_storage import add_symbol_to_watchlist
+    
+    try:
+        body = await request.json()
+        symbol = body.get("symbol", "").strip().upper()
+        
+        if not symbol:
+            return {"status": "error", "message": "Symbol is required"}
+        
+        success = add_symbol_to_watchlist(watchlist_name, symbol)
+        if success:
+            return {"status": "success", "message": f"Added {symbol} to '{watchlist_name}'"}
+        else:
+            return {"status": "error", "message": f"Symbol already in watchlist or watchlist not found"}
+    except Exception as e:
+        logger.error(f"Error adding symbol: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.delete("/api/watchlists/{watchlist_name}/remove/{symbol}", response_model=Dict)
+async def api_remove_symbol(watchlist_name: str, symbol: str):
+    """
+    Remove a symbol from a watchlist.
+    
+    Args:
+        watchlist_name: Name of watchlist
+        symbol: Symbol to remove
+    """
+    from core.watchlist_storage import remove_symbol_from_watchlist
+    
+    try:
+        success = remove_symbol_from_watchlist(watchlist_name, symbol.upper())
+        if success:
+            return {"status": "success", "message": f"Removed {symbol} from '{watchlist_name}'"}
+        else:
+            return {"status": "error", "message": f"Symbol not found in watchlist"}
+    except Exception as e:
+        logger.error(f"Error removing symbol: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     """
@@ -398,8 +549,17 @@ async def dashboard(request: Request):
     portfolio = Portfolio(initial_capital=config['backtest']['initial_capital'])
     
     # Load cached scan results if available
-    from core.scan_cache import load_scan_results
+    from core.scan_cache import load_scan_results, CACHE_FILE
+    logger.info(f"Attempting to load cache from: {CACHE_FILE} (exists: {CACHE_FILE.exists()})")
     cached_results = load_scan_results()
+    
+    # Always log cache status
+    if cached_results:
+        logger.info(f"Cache loaded successfully. Has recommendations: {bool(cached_results.get('recommendations'))}, has timestamp: {bool(cached_results.get('timestamp'))}")
+        if cached_results.get('timestamp'):
+            logger.info(f"Cache timestamp: {cached_results.get('timestamp')}")
+    else:
+        logger.warning("Cache load returned None - no cache file or error loading")
     
     ranked_recommendations = []
     if cached_results and cached_results.get('recommendations'):
@@ -511,7 +671,34 @@ async def dashboard(request: Request):
     # Generate equity charts (simplified for performance)
     equity_charts = []
     
+    # Get last scan timestamp from cache - always try to get it even if recommendations weren't used
+    last_scan_timestamp = None
+    
+    # First try from cached_results if it exists
+    if cached_results and cached_results.get('timestamp'):
+        last_scan_timestamp = cached_results.get('timestamp')
+        logger.info(f"Dashboard loading with last scan timestamp from cached_results: {last_scan_timestamp}")
+    else:
+        # Fallback: Load cache directly (in case cached_results was None or didn't have timestamp)
+        try:
+            from core.scan_cache import load_scan_results
+            direct_cache = load_scan_results()
+            if direct_cache and direct_cache.get('timestamp'):
+                last_scan_timestamp = direct_cache.get('timestamp')
+                logger.info(f"Loaded timestamp from direct cache read: {last_scan_timestamp}")
+            else:
+                logger.warning(f"Direct cache load found no timestamp. Cache exists: {direct_cache is not None}, keys: {list(direct_cache.keys()) if direct_cache else 'N/A'}")
+        except Exception as e:
+            logger.error(f"Error in direct cache fallback: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+    
+    # Final check - if still None, log it
+    if not last_scan_timestamp:
+        logger.error("ERROR: last_scan_timestamp is still None after all attempts!")
+    
     # Render dashboard
+    logger.info(f"Rendering dashboard with last_scan_timestamp={last_scan_timestamp}")
     return templates.TemplateResponse(TEMPLATE_NAME, {
         "request": request,
         "ranked_recommendations": ranked_recommendations,
@@ -519,6 +706,7 @@ async def dashboard(request: Request):
         "portfolio_summary": portfolio_summary,
         "portfolio_metrics": portfolio_metrics,
         "equity_charts": equity_charts,
+        "last_scan_timestamp": last_scan_timestamp,  # Always pass, even if None
         "error": None
     })
 

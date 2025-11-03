@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXFI - Agent X Financial Intelligence</title>
+    <link rel="stylesheet" href="/static/style_xetho.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <!-- Top Banner -->
+    <div class="top-banner">
+        <div class="banner-content">
+            <div class="logo-section">
+                <span class="close-btn" onclick="toggleBanner()">×</span>
+                <div class="logo">
+                    <h1>AXFI</h1>
+                    <p>AI Financial Intelligence Platform</p>
+                </div>
+            </div>
+            <div class="banner-actions">
+                <button class="btn-secondary">Dashboard</button>
+                <button class="btn-primary">Settings</button>
+                <span class="status-badge">🛡️ Live Data</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section (Shown only on empty state) -->
+        <div class="hero-section" {% if ranked_recommendations %}style="display: none;"{% endif %}>
+            <div class="hero-badge">✨ The World's First AI-Powered Trading Intelligence</div>
+            <h1>Meet AXFI</h1>
+            <p class="hero-subtitle">Proactive AI that Scans Markets, Anticipates Opportunities, and Delivers Insights—Before You Ask.</p>
+            
+            <!-- Quick Scanner Input -->
+            <div class="quick-scanner">
+                <input type="text" id="quickSymbolInput" placeholder="Ask AXFI about any stock..." />
+                <button class="btn-primary" onclick="quickAnalyze()">Try</button>
+            </div>
+
+            <!-- Trusted By Section -->
+            <div class="trusted-section">
+                <span>Trusted by traders at</span>
+                <div class="trusted-logos">
+                    <span>Quant Fund</span>
+                    <span>Prop Trading</span>
+                    <span>Hedge Fund</span>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="cta-buttons">
+                <button class="btn-primary-large" onclick="openAIAssistant()">
+                    Chat with AXFI
+                    <span>→</span>
+                </button>
+                <button class="btn-secondary-large" onclick="showTab('scanner')">
+                    View Scanner
+                </button>
+            </div>
+        </div>
+
+        <!-- Feature Cards Grid (Shown only on empty state) -->
+        <div class="features-grid" {% if ranked_recommendations %}style="display: none;"{% endif %}>
+            <div class="feature-card" onclick="showTab('scanner')">
+                <div class="feature-icon">📊</div>
+                <h3>Proactive Scanning</h3>
+                <p>AI scans S&P 500 stocks, anticipates opportunities, and offers insights before you ask.</p>
+            </div>
+            <div class="feature-card" onclick="showTab('analyzer')">
+                <div class="feature-icon">🎯</div>
+                <h3>Deep Analysis</h3>
+                <p>Multi-timeframe analysis with explainable AI reasoning for every recommendation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Live Data</h3>
+                <p>Real-time market data from multiple providers with intelligent fallback.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Local-First Privacy</h3>
+                <p>Your data stays local and protected—all analysis happens on your machine.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✨</div>
+                <h3>Continuous Learning</h3>
+                <p>AI evolves with every scan, learning your preferences and market patterns.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>Multi-Agent System</h3>
+                <p>Specialized agents collaborate seamlessly for comprehensive market intelligence.</p>
+            </div>
+        </div>
+
+        <!-- Stats Section (Shown only on empty state) -->
+        <div class="stats-section" {% if ranked_recommendations %}style="display: none;"{% endif %}>
+            <div class="stat-card">
+                <div class="stat-value">500+</div>
+                <div class="stat-label">S&P Stocks Scanned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">1M+</div>
+                <div class="stat-label">Signals Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">99.9%</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+        </div>
+
+        <!-- Main Tabs (Show if we have data) -->
+        <div id="mainTabs" style="display: block;">
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="showTab('scanner')">📊 Market Scanner</button>
+                <button class="tab-btn" onclick="showTab('analyzer')">🔍 Stock Analyzer</button>
+            </div>
+
+            <!-- Tab 1: Market Scanner -->
+            <div id="scanner" class="tab-content active">
+                <section class="content-section">
+                    <div class="section-header">
+                        <h2>📊 Daily S&P 500 Market Scanner</h2>
+                        <button class="btn-primary" onclick="runDailyScan()">🔄 Refresh Scan</button>
+                    </div>
+                    
+                    {% if symbol_live_prices %}
+                    <div class="live-prices-section">
+                        <h3>Live Prices (Click to analyze)</h3>
+                        <div class="live-prices-grid">
+                            {% for symbol, price_data in symbol_live_prices.items() %}
+                            <div class="price-card" onclick="analyzeSymbolFromTable('{{ symbol }}')">
+                                <div class="symbol-name">{{ symbol }}</div>
+                                <div class="symbol-price">${{ "%.2f"|format(price_data.price) }}</div>
+                                <div class="symbol-provider">{{ price_data.provider }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if ranked_recommendations %}
+                    <div class="recommendations-section">
+                        <h3>Top Recommendations</h3>
+                        <div class="table-container">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Symbol</th>
+                                        <th>Price</th>
+                                        <th>Strategy</th>
+                                        <th>Score</th>
+                                        <th>CAGR</th>
+                                        <th>Sharpe</th>
+                                        <th>Max DD</th>
+                                        <th>Win Rate</th>
+                                        <th>Explanation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rec in ranked_recommendations %}
+                                    <tr onclick="analyzeSymbolFromTable('{{ rec.symbol }}')">
+                                        <td><strong>{{ rec.rank }}</strong></td>
+                                        <td><strong style="color: #3498db; cursor: pointer;">{{ rec.symbol }}</strong></td>
+                                        <td>
+                                            {% if rec.current_price is not none and rec.current_price != 0 %}
+                                                <span style="color: #27ae60; font-weight: bold;">${{ "%.2f"|format(rec.current_price) }}</span>
+                                            {% else %}
+                                                <span style="color: #95a5a6; font-style: italic;">--</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ rec.strategy }}</td>
+                                        <td>{{ "%.4f"|format(rec.score) }}</td>
+                                        <td>{{ "%.2f"|format(rec.cagr) }}%</td>
+                                        <td>{{ "%.2f"|format(rec.sharpe) }}</td>
+                                        <td>{{ "%.2f"|format(rec.max_dd) }}%</td>
+                                        <td>{{ "%.1f"|format(rec.win_rate) }}%</td>
+                                        <td style="font-size: 0.9em;">{{ rec.explanation }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p>No recommendations available. Click "Refresh Scan" to run the market scanner.</p>
+                    </div>
+                    {% endif %}
+                </section>
+            </div>
+
+            <!-- Tab 2: Stock Analyzer -->
+            <div id="analyzer" class="tab-content">
+                <section class="content-section">
+                    <div class="symbol-input-form">
+                        <input type="text" id="symbolInput" placeholder="Enter symbol (e.g., AAPL, TSLA, NVDA)" value="AAPL">
+                        <button class="btn-primary" onclick="analyzeSymbol()">Analyze Symbol</button>
+                    </div>
+                    <div id="analyzerResult"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 AXFI - Agent X Financial Intelligence. All rights reserved.</p>
+    </footer>
+
+    <!-- Floating AI Assistant -->
+    <div id="aiAssistant" class="ai-assistant">
+        <div class="assistant-header">
+            <div class="assistant-info">
+                <span class="close-assistant" onclick="closeAssistant()">×</span>
+                <div class="assistant-title">
+                    <h3>AXFI</h3>
+                    <span class="assistant-badge">🛡️ Local</span>
+                </div>
+                <p class="assistant-subtitle">AI Trading Assistant</p>
+            </div>
+            <div class="assistant-actions">
+                <button class="assistant-btn">🧠</button>
+                <button class="assistant-btn">▤</button>
+                <button class="assistant-btn">⤡</button>
+                <button class="assistant-btn" onclick="closeAssistant()">✕</button>
+            </div>
+        </div>
+
+        <!-- Proactive Insights -->
+        <div class="insights-section">
+            <button class="insight-card">
+                <span class="insight-icon">✨</span>
+                <span class="insight-text">AAPL showing strong bullish momentum — want a detailed analysis?</span>
+            </button>
+            <button class="insight-card">
+                <span class="insight-icon">✨</span>
+                <span class="insight-text">3 new opportunities detected — check market scanner?</span>
+            </button>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages">
+            <div class="message bot-message">
+                <p>Hi! I'm AXFI, your AI trading assistant. I can help you analyze stocks, scan markets, and find opportunities. What would you like to know?</p>
+                <span class="message-time">1:14:34 PM</span>
+            </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input-container">
+            <div class="chat-actions">
+                <button class="chat-action-btn">📝</button>
+                <button class="chat-action-btn">📋</button>
+                <button class="chat-action-btn">🧠</button>
+                <button class="chat-action-btn">🔍</button>
+                <button class="chat-action-btn">✅</button>
+                <button class="chat-action-btn">📊</button>
+                <button class="chat-action-btn">📈</button>
+                <button class="chat-action-btn">💰</button>
+                <button class="chat-action-btn">📤</button>
+                <button class="chat-action-btn">📌</button>
+            </div>
+            <div class="chat-input-row">
+                <button class="attach-btn">📎</button>
+                <input type="text" id="chatInput" placeholder="Ask a trading question..." />
+                <button class="send-btn" id="sendBtn" disabled>➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Open AI Assistant Button -->
+    <button class="open-assistant-btn" id="openAssistantBtn" onclick="openAIAssistant()">
+        <span>AXFI</span>
+    </button>
+
+    <script>
+        // Tab switching
+        function showTab(tabName) {
+            // Hide hero section when showing tabs
+            document.querySelector('.hero-section').style.display = 'none';
+            document.querySelector('.features-grid').style.display = 'none';
+            document.querySelector('.stats-section').style.display = 'none';
+            
+            // Show main tabs
+            document.getElementById('mainTabs').style.display = 'block';
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // AI Assistant controls
+        function openAIAssistant() {
+            document.getElementById('aiAssistant').classList.add('active');
+            document.getElementById('openAssistantBtn').style.display = 'none';
+            document.getElementById('chatInput').focus();
+        }
+
+        function closeAssistant() {
+            document.getElementById('aiAssistant').classList.remove('active');
+            document.getElementById('openAssistantBtn').style.display = 'flex';
+        }
+
+        function toggleBanner() {
+            document.querySelector('.top-banner').style.display = 'none';
+        }
+
+        // Quick analyze
+        function quickAnalyze() {
+            const symbol = document.getElementById('quickSymbolInput').value.toUpperCase().trim();
+            if (symbol) {
+                showTab('analyzer');
+                document.getElementById('symbolInput').value = symbol;
+                analyzeSymbol();
+            }
+        }
+
+        // Chat input handling
+        document.getElementById('chatInput').addEventListener('input', function() {
+            document.getElementById('sendBtn').disabled = !this.value.trim();
+        });
+
+        // Other functions from original dashboard
+        async function analyzeSymbol() {
+            const symbol = document.getElementById('symbolInput').value.toUpperCase().trim();
+            if (!symbol) {
+                const resultDiv = document.getElementById('analyzerResult');
+                resultDiv.innerHTML = '<div class="error-message"><p>Please enter a symbol</p></div>';
+                return;
+            }
+
+            const resultDiv = document.getElementById('analyzerResult');
+            resultDiv.innerHTML = `<div style="text-align: center; padding: 40px;"><div class="loader"></div><p>Analyzing ${symbol}...</p></div>`;
+
+            try {
+                const response = await fetch(`/api/symbol_analysis?symbol=${symbol}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<div class="error-message"><p>${data.error}</p></div>`;
+                    return;
+                }
+
+                const analysis = data.analysis;
+                const details = analysis.detailed_info || {};
+                
+                // Format numbers
+                const formatNumber = (num) => {
+                    if (!num) return 'N/A';
+                    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+                    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+                    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+                    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+                    return num.toFixed(2);
+                };
+
+                const html = `
+                    <div class="analysis-result">
+                        <h3>${analysis.symbol} - $${analysis.current_price.toFixed(2)}</h3>
+                        
+                        <!-- Stock Details -->
+                        <div class="stock-details-section">
+                            <h4>📊 Stock Details</h4>
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Previous Close:</span>
+                                    <span class="detail-value">$${details.previous_close ? details.previous_close.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Open:</span>
+                                    <span class="detail-value">$${details.open ? details.open.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Day's Range:</span>
+                                    <span class="detail-value">$${details.day_low ? details.day_low.toFixed(2) : 'N/A'} - $${details.day_high ? details.day_high.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">52 Week Range:</span>
+                                    <span class="detail-value">$${details['52_week_low'] ? details['52_week_low'].toFixed(2) : 'N/A'} - $${details['52_week_high'] ? details['52_week_high'].toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Volume:</span>
+                                    <span class="detail-value">${details.volume ? formatNumber(details.volume) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Market Cap:</span>
+                                    <span class="detail-value">${details.market_cap ? formatNumber(details.market_cap) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Beta (5Y):</span>
+                                    <span class="detail-value">${details.beta ? details.beta.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">PE Ratio:</span>
+                                    <span class="detail-value">${details.pe_ratio ? details.pe_ratio.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">EPS:</span>
+                                    <span class="detail-value">$${details.eps ? details.eps.toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Target Price:</span>
+                                    <span class="detail-value">$${details.target_price ? details.target_price.toFixed(2) : 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeframe Analysis -->
+                        <div class="timeframe-section">
+                            <h4>📅 Short-Term (3 days)</h4>
+                            <span class="recommendation-badge ${analysis.short_term.recommendation}">${analysis.short_term.recommendation}</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${analysis.short_term.confidence * 100}%"></div>
+                            </div>
+                            <p><strong>Confidence:</strong> ${(analysis.short_term.confidence * 100).toFixed(0)}%</p>
+                            <p><strong>Price Change:</strong> ${(analysis.short_term.price_change_pct || 0).toFixed(2)}%</p>
+                            ${analysis.short_term.take_profit ? `<p><strong>Take Profit:</strong> $${analysis.short_term.take_profit.toFixed(2)}</p>` : ''}
+                            ${analysis.short_term.stop_loss ? `<p><strong>Stop Loss:</strong> $${analysis.short_term.stop_loss.toFixed(2)}</p>` : ''}
+                        </div>
+
+                        <div class="timeframe-section">
+                            <h4>📅 Mid-Term (2-6 weeks)</h4>
+                            <span class="recommendation-badge ${analysis.mid_term.recommendation}">${analysis.mid_term.recommendation}</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${analysis.mid_term.confidence * 100}%"></div>
+                            </div>
+                            <p><strong>Confidence:</strong> ${(analysis.mid_term.confidence * 100).toFixed(0)}%</p>
+                            ${analysis.mid_term.target_price ? `<p><strong>Target Price:</strong> $${analysis.mid_term.target_price.toFixed(2)}</p>` : ''}
+                            <p><strong>Trend:</strong> ${analysis.mid_term.trend || 'N/A'}</p>
+                        </div>
+
+                        <div class="timeframe-section">
+                            <h4>📅 Long-Term (2-6 months)</h4>
+                            <span class="recommendation-badge ${analysis.long_term.recommendation}">${analysis.long_term.recommendation}</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${analysis.long_term.confidence * 100}%"></div>
+                            </div>
+                            <p><strong>Confidence:</strong> ${(analysis.long_term.confidence * 100).toFixed(0)}%</p>
+                            <p><strong>Return:</strong> ${analysis.long_term.total_return_pct.toFixed(2)}%</p>
+                        </div>
+
+                        <div class="overall-section">
+                            <h4>🎯 Overall Recommendation</h4>
+                            <span class="recommendation-badge ${analysis.overall_recommendation.recommendation.replace(' ', '_')}">${analysis.overall_recommendation.recommendation}</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${analysis.overall_recommendation.confidence * 100}%"></div>
+                            </div>
+                            <p><strong>Confidence:</strong> ${(analysis.overall_recommendation.confidence * 100).toFixed(0)}%</p>
+                        </div>
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error-message"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        function analyzeSymbolFromTable(symbol) {
+            showTab('analyzer');
+            document.getElementById('symbolInput').value = symbol;
+            analyzeSymbol();
+        }
+
+        async function runDailyScan() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⏳ Scanning...';
+            
+            try {
+                const response = await fetch('/api/daily_scan');
+                const data = await response.json();
+                
+                button.disabled = false;
+                button.textContent = '✅ Complete (' + data.total_recommendations + ' recommendations)';
+                
+                // Reload page to show updated results
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = '❌ Error - Try Again';
+                console.error('Scan error:', error);
+            }
+        }
+
+        // Loader animation
+        const style = document.createElement('style');
+        style.textContent = `
+            .loader {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #3498db;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 20px auto;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
+

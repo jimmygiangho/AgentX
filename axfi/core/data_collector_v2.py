@@ -109,10 +109,22 @@ class DataCollectorV2:
         self.logger.info(f"Fetching {symbol} from {start} to {end} using {self.provider.__class__.__name__}")
         
         # Try primary provider first
-        df = self.provider.get_historical_ohlcv(symbol, start, end)
+        df = pd.DataFrame()
+        primary_failed = False
+        try:
+            df = self.provider.get_historical_ohlcv(symbol, start, end)
+        except Exception as e:
+            error_str = str(e)
+            # Check for rate limit errors (429, Too Many Requests)
+            if "429" in error_str or "Too Many Requests" in error_str or "rate limit" in error_str.lower():
+                self.logger.warning(f"Rate limit error (429) from primary provider for {symbol}: {e}")
+                primary_failed = True
+            else:
+                self.logger.warning(f"Primary provider error for {symbol}: {e}")
+                primary_failed = True
         
         # If primary provider fails or returns empty, try yfinance fallback
-        if df.empty or "error" in str(df).lower():
+        if primary_failed or df.empty or "error" in str(df).lower():
             self.logger.info(f"Primary provider failed for {symbol}, trying yfinance fallback...")
             try:
                 import yfinance as yf
@@ -135,8 +147,10 @@ class DataCollectorV2:
                     else:
                         df["adj_close"] = df["close"]
                     self.logger.info(f"Successfully fetched {len(df)} rows using yfinance fallback")
+                else:
+                    self.logger.warning(f"yfinance fallback returned empty data for {symbol}")
             except Exception as e:
-                self.logger.error(f"Fallback provider also failed: {e}")
+                self.logger.error(f"yfinance fallback also failed for {symbol}: {e}")
         
         if df.empty:
             self.logger.warning(f"No data returned for {symbol}")

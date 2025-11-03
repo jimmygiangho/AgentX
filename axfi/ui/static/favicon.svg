@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <defs>
+        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#FFD700;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#B8860B;stop-opacity:1" />
+        </linearGradient>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Background with rounded corners -->
+    <rect width="120" height="120" fill="#0a0a0a" rx="15"/>
+    
+    <!-- Particle Ring Circle -->
+    <g>
+        <circle cx="60" cy="60" r="56" fill="none" stroke="url(#goldGradient)" stroke-width="1.5" opacity="0.9"/>
+        <circle cx="60" cy="60" r="54" fill="none" stroke="url(#goldGradient)" stroke-width="0.8" opacity="0.7"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="url(#goldGradient)" stroke-width="0.6" opacity="0.5"/>
+        <!-- Enhanced particles -->
+        <circle cx="60" cy="4" r="2" fill="#FFD700" opacity="0.9"/>
+        <circle cx="116" cy="60" r="2" fill="#D4AF37" opacity="0.9"/>
+        <circle cx="60" cy="116" r="2" fill="#FFD700" opacity="0.9"/>
+        <circle cx="4" cy="60" r="2" fill="#D4AF37" opacity="0.9"/>
+        <circle cx="30" cy="10" r="1.5" fill="#B8860B" opacity="0.8"/>
+        <circle cx="110" cy="30" r="1.5" fill="#FFD700" opacity="0.8"/>
+        <circle cx="90" cy="110" r="1.5" fill="#D4AF37" opacity="0.8"/>
+        <circle cx="10" cy="90" r="1.5" fill="#B8860B" opacity="0.8"/>
+    </g>
+    
+    <!-- Microchip Icon with enhanced visibility -->
+    <g filter="url(#glow)">
+        <!-- Main chip body -->
+        <rect x="45" y="45" width="30" height="30" rx="2.5" fill="none" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <!-- Inner square -->
+        <rect x="52" y="52" width="16" height="16" rx="1.5" fill="none" stroke="url(#goldGradient)" stroke-width="2"/>
+        <!-- Pins (top) -->
+        <line x1="50" y1="45" x2="50" y2="38" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="60" y1="45" x2="60" y2="38" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="70" y1="45" x2="70" y2="38" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <!-- Pins (bottom) -->
+        <line x1="50" y1="75" x2="50" y2="82" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="60" y1="75" x2="60" y2="82" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="70" y1="75" x2="70" y2="82" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <!-- Pins (left) -->
+        <line x1="45" y1="50" x2="38" y2="50" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="45" y1="60" x2="38" y2="60" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="45" y1="70" x2="38" y2="70" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <!-- Pins (right) -->
+        <line x1="75" y1="50" x2="82" y2="50" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="75" y1="60" x2="82" y2="60" stroke="url(#goldGradient)" stroke-width="2.5"/>
+        <line x1="75" y1="70" x2="82" y2="70" stroke="url(#goldGradient)" stroke-width="2.5"/>
+    </g>
+</svg>
